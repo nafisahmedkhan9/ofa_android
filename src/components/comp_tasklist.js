@@ -17,7 +17,8 @@ import {
   List,
   ListItem,
   Card,
-  CardItem
+  CardItem,
+  Drawer
 } from "native-base";
 import { FlatList } from "react-native";
 
@@ -35,6 +36,8 @@ import { connect } from "react-redux";
 // import bindActionCreator
 import { bindActionCreators } from "redux";
 
+import SideBar from "./comp_sidebar";
+
 class TaskList extends Component {
   constructor(props) {
     super(props);
@@ -48,39 +51,74 @@ class TaskList extends Component {
   }
 
   componentWillMount() {
-    // alert("user " + JSON.stringify(this.props));
     this.props.onGetTasks(this.props.user.id);
   }
+  componentDidMount() {
+    this.drawer._root.close();
+  }
+
+  closeDrawer = () => {
+    this.drawer._root.close();
+  };
+  openDrawer = () => {
+    this.drawer._root.open();
+  };
 
   render() {
     return (
-      <Container>
-        <Header>
-          <Body>
-            <Title>Task Details</Title>
-          </Body>
-        </Header>
-        <Content>
-          <FlatList
-            data={this.props.tasks.data}
-            renderItem={({ item, index }) => (
-              <Card>
-                <CardItem
-                  header
-                  button
-                  onPress={() => this.goToTaskDetails(index)}
-                >
-                  <Body>
-                    <Text>{item.title}</Text>
-                    <Text note>{item.date}</Text>
-                  </Body>
-                </CardItem>
-              </Card>
-            )}
-            keyExtractor={index => index.toString()}
+      <Drawer
+        ref={ref => {
+          this.drawer = ref;
+        }}
+        tapToClose={true}
+        content={
+          <SideBar
+            navigator={this.props.navigation}
+            pagename={"tasklist"}
+            username={this.props.user.username}
+            profile_pic={this.props.user.profile_pic}
           />
-        </Content>
-      </Container>
+        }
+        onClose={() => this.closeDrawer()}
+      >
+        <Container>
+          <Header>
+            <Left>
+              <Button
+                transparent
+                onPress={() => {
+                  this.openDrawer();
+                }}
+              >
+                <Icon name="menu" />
+              </Button>
+            </Left>
+            <Body>
+              <Title>Task List</Title>
+            </Body>
+          </Header>
+          <Content>
+            <FlatList
+              data={this.props.tasks.data}
+              renderItem={({ item, index }) => (
+                <Card>
+                  <CardItem
+                    header
+                    button
+                    onPress={() => this.goToTaskDetails(index)}
+                  >
+                    <Body>
+                      <Text>{item.title}</Text>
+                      <Text note>{item.date}</Text>
+                    </Body>
+                  </CardItem>
+                </Card>
+              )}
+              keyExtractor={index => index.toString()}
+            />
+          </Content>
+        </Container>
+      </Drawer>
     );
   }
 }

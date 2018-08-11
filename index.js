@@ -8,4 +8,4 @@ YellowBox.ignoreWarnings([
   "Module RCTImageLoader"
 ]);
 
-AppRegistry.registerComponent("RNHostel", () => App);
+AppRegistry.registerComponent("OFA", () => App);

@@ -53,11 +53,10 @@ export function getTasks(userID) {
       .then(response => response.json())
       .then(responseJson => {
         if (responseJson.count > 0) {
-          //   alert("data " + JSON.stringify(responseJson));
           dispatch(getDataSuccess(responseJson.results));
-          //   navigation.replace("TaskList");
         } else {
-          alert("get task error, please check your internet connection");
+          dispatch(getDataSuccess([]));
+          alert("Hurrah!, You don't have any task");
         }
       })
       .catch(error => {

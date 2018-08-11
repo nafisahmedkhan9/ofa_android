@@ -1,4 +1,4 @@
-package com.rnhostel;
+package com.sanjaresolutions.ofa;
 
 import android.app.Application;
 

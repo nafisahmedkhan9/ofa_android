@@ -9,6 +9,7 @@ import { createStackNavigator } from "react-navigation";
 import Login from "./src/components/comp_login";
 import TaskList from "./src/components/comp_tasklist";
 import MyTask from "./src/components/comp_mytask";
+import Attendance from "./src/components/comp_attandance";
 
 // import reducer
 import userReducer from "./src/reducers/user-reducer";
@@ -52,6 +53,9 @@ const RootStack = createStackNavigator(
     },
     MyTask: {
       screen: MyTask
+    },
+    Attendance: {
+      screen: Attendance
     }
   },
   {

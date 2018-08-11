@@ -23,16 +23,19 @@ import {
   View,
   Footer
 } from "native-base";
-import { FlatList, ToastAndroid } from "react-native";
+import { FlatList, ToastAndroid, Linking } from "react-native";
 
 // import constant
 import * as Constant from "../constant";
+
+import CSS from "../styles/common_sty";
 class MyTask extends Component {
   constructor(props) {
     super(props);
     this.state = {
       taskDetail: {},
-      taskStatus: "1"
+      taskStatus: "1",
+      comment: ""
     };
   }
 
@@ -40,34 +43,141 @@ class MyTask extends Component {
     const { navigation } = this.props;
     let taskDetail = navigation.getParam("taskDetail");
 
-    this.setState({
-      taskDetail: taskDetail
-    });
+    this.setState(
+      {
+        taskDetail: taskDetail,
+        taskStatus: taskDetail["status"] + "",
+        comment: taskDetail["comment"]
+      },
+      () => {}
+    );
   }
 
   updateTask() {
-    console.log(this.state.taskDetail);
-    fetch(Constant.API_URL + "/task/" + this.state.taskDetail.id + "/", {
-      method: "PUT",
-      body: this.state.taskDetail,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
+    let taskDetail = Object.assign({}, this.state.taskDetail);
+    taskDetail["status"] = this.state.taskStatus;
+    taskDetail["comment"] = this.state.comment;
+
+    this.setState(
+      {
+        taskDetail: taskDetail
+      },
+      () => {
+        fetch(Constant.API_URL + "task/" + this.state.taskDetail.id + "/", {
+          method: "PUT",
+          body: JSON.stringify(this.state.taskDetail),
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json"
+          }
+        })
+          .then(response => response.json())
+          .then(responseJson => {
+            alert("Successfully Updated your task");
+
+            this.getLocationWithCompareDistance();
+          })
+          .catch(error => {
+            ToastAndroid.show("update task Error" + error, ToastAndroid.LONG);
+          });
       }
-    })
-      .then(response => response.json())
-      .then(responseJson => {
-        if (responseJson.count > 0) {
-          alert("data " + JSON.stringify(responseJson));
-          // dispatch(getDataSuccess(responseJson.results));
-          //   navigation.replace("TaskList");
+    );
+  }
+
+  rad(x) {
+    return (x * Math.PI) / 180;
+  }
+  getDistance(p1, p2) {
+    var R = 6378137; // Earth’s mean radius in meter
+    var dLat = this.rad(p2.lat - p1.lat);
+    var dLong = this.rad(p2.lng - p1.lng);
+    var a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.rad(p1.lat)) *
+        Math.cos(this.rad(p2.lat)) *
+        Math.sin(dLong / 2) *
+        Math.sin(dLong / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    var d = R * c;
+    return d; // returns the distance in meter
+  }
+
+  formatDate(date) {
+    var monthNames = [
+      "01",
+      "02",
+      "03",
+      "04",
+      "05",
+      "06",
+      "07",
+      "08",
+      "09",
+      "10",
+      "11",
+      "12"
+    ];
+
+    var day = date.getDate();
+    var monthIndex = date.getMonth();
+    var year = date.getFullYear();
+
+    return year + "-" + monthNames[monthIndex] + "-" + day;
+  }
+
+  getLocationWithCompareDistance() {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        const location = this.state.taskDetail.address.split(",");
+        let taskLocation = {
+          lat: location[0],
+          lng: location[1]
+        };
+        let currentLocation = {
+          lat: latitude,
+          lng: longitude
+        };
+
+        var distance = this.getDistance(taskLocation, currentLocation);
+        if (distance <= 50) {
+          let attendance = {
+            date: this.formatDate(new Date()),
+            employee: this.state.taskDetail.assignedTo,
+            attendance: 1,
+            task: this.state.taskDetail.id
+          };
+          fetch(Constant.API_URL + "attendance/", {
+            method: "POST",
+            body: JSON.stringify(attendance),
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json"
+            }
+          })
+            .then(response => response.json())
+            .then(responseJson => {
+              // alert(JSON.stringify(responseJson));
+            })
+            .catch(error => {
+              ToastAndroid.show("update task Error" + error, ToastAndroid.LONG);
+            });
         } else {
-          alert("got task update error, please check your internet connection");
+          alert(
+            "We are watching you, Plz go to your's task location and complete task"
+          );
         }
-      })
-      .catch(error => {
-        ToastAndroid.show("update task Error" + error, ToastAndroid.LONG);
-      });
+        this.props.navigation.replace("TaskList");
+      },
+      error => {
+        alert(
+          "Either your internet connection is dead or your GPS is not working correctly. Plz Give me Permission to access Location"
+        );
+        return { lat: -1, long: -1 };
+      },
+
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
   }
 
   render() {
@@ -75,7 +185,7 @@ class MyTask extends Component {
       <Container>
         <Header>
           <Body>
-            <Title>My Task</Title>
+            <Title>Task Details</Title>
           </Body>
         </Header>
         <Content>
@@ -93,7 +203,17 @@ class MyTask extends Component {
             </CardItem>
             <CardItem>
               <Body>
-                <Text>{this.state.taskDetail.address}</Text>
+                <Text
+                  onPress={() => {
+                    Linking.openURL(
+                      "https://maps.google.com/?q=" +
+                        this.state.taskDetail.address
+                    );
+                  }}
+                  style={[CSS.textblue]}
+                >
+                  Click Here to see your task location
+                </Text>
               </Body>
             </CardItem>
 
@@ -121,16 +241,19 @@ class MyTask extends Component {
               </Picker>
             </CardItem>
             <CardItem>
-              <Label>Remark</Label>
+              <Label>Comment</Label>
             </CardItem>
             <CardItem>
               <Textarea
                 bordered
                 width={"100%"}
                 height={70}
-                // onChangeText={fullAddress =>
-                //   this.setUserAddress("fullAddress", fullAddress)
-                // }
+                onChangeText={comment =>
+                  this.setState({
+                    comment: comment
+                  })
+                }
+                value={this.state.comment}
               />
             </CardItem>
           </Card>
@@ -141,6 +264,7 @@ class MyTask extends Component {
           onPress={() => {
             this.updateTask();
           }}
+          disabled={this.state.taskStatus == "1"}
         >
           <Text>Submit</Text>
         </Button>
